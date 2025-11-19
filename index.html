@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SVG 12行ラベルメーカー（110mm固定・Rounded Mplus 1c・ウエイト選択）</title>
+  <!-- プレビュー用：ブラウザ表示には Google Fonts の M PLUS Rounded 1c を利用（SVG には Rounded Mplus 1c を書き出し） -->
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root { --gap: 12px; }
+    html, body { height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "M PLUS Rounded 1c", "Rounded Mplus 1c", "Yu Gothic UI", Meiryo, sans-serif;
+      margin: 0;
+      background: #f6f7f9;
+      color: #111;
+    }
+    .wrap {
+      max-width: 860px;
+      margin: 24px auto;
+      padding: 24px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.06);
+    }
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    h1 small { font-size: 12px; color:#666; }
+    p.hint { margin: 0 0 20px; color: #666; font-size: 13px; }
+    form { display: grid; grid-template-columns: 1fr auto; gap: var(--gap); align-items: end; margin-bottom: 16px; }
+    label { font-size: 13px; color: #333; }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d9dde3;
+      font-size: 14px;
+      outline: none;
+      background:#fff;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus {
+      border-color: #5b9cff;
+      box-shadow: 0 0 0 3px rgba(91,156,255,.15);
+    }
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #111;
+      color: #fff;
+      transition: transform .04s ease, box-shadow .2s ease, opacity .2s ease;
+    }
+    button.secondary { background:#e9ecf1; color:#111; }
+    button:active { transform: translateY(1px); }
+    .row { display:flex; gap: var(--gap); align-items:center; flex-wrap: wrap; }
+    .preview {
+      background: #fafbfc;
+      border: 1px dashed #d6dbe2;
+      border-radius: 12px;
+      min-height: 220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      overflow:auto;
+    }
+    .meta { font-size: 12px; color: #666; margin-top: 8px; }
+    .fields { display:grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; margin: 10px 0 0; }
+    .fields label { display:flex; flex-direction:column; gap:6px; }
+    .tests {
+      font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background:#f1f5f9;
+      border:1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>SVG 12行ラベルメーカー<br><small>110mm固定・Rounded Mplus 1c・ウエイト選択</small></h1>
+    <p class="hint">
+      ・アートボード固定 <b>110mm × 110mm</b><br>
+      ・フォント（Illustrator側認識名）：<b>Rounded Mplus 1c</b><br>
+      ・行送り(mm)でテキストを任意行数配置し、行群全体をアートボード中央に配置します。<br>
+      ・ウエイトは Illustrator のメニューと揃えて <b>Thin / Light / Regular / Medium / ExtraBold / Black</b> を選択できます。<br>
+      ・SVGは <code>&lt;text&gt;</code> のまま出力（アウトライン化はIllustrator側で実施）。
+    </p>
+
+    <form id="f">
+      <div>
+        <label>テキスト（氏名など）
+          <input id="name" type="text" placeholder="例）さかもとりょうま" autocomplete="name" />
+        </label>
+        <div class="fields">
+          <label>行数
+            <input id="lines" type="number" min="1" max="200" step="1" value="12" />
+          </label>
+          <label>行送り (mm)
+            <input id="pitch" type="number" step="0.1" value="9" />
+          </label>
+          <label>文字サイズ (pt)
+            <input id="fontpt" type="number" step="0.1" value="12" />
+          </label>
+          <label>補正倍率 (×)
+            <input id="corr" type="number" step="0.0001" value="0.352778" />
+          </label>
+          <label>ウエイト
+            <select id="weight">
+              <option value="100">Thin</option>
+              <option value="300">Light</option>
+              <option value="400" selected>Regular</option>
+              <option value="500">Medium</option>
+              <option value="800">ExtraBold</option>
+              <option value="900">Black</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <div class="row">
+        <button type="button" id="btnPreview" class="secondary">プレビュー更新</button>
+        <button type="button" id="btnDownloadText">SVG をダウンロード</button>
+      </div>
+    </form>
+
+    <div id="preview" class="preview">ここにSVGプレビューが表示されます（Rounded Mplus 1c / テキスト）</div>
+    <div class="meta">アートボード：110×110mm。テキスト行群は上下左右中央に自動配置されます。</div>
+    <div id="tests" class="tests" aria-live="polite"></div>
+  </div>
+
+  <script>
+    // ===== 定数 =====
+    const BOARD_MM = 110;                 // 出力ボード 110mm
+    const DEFAULT_CORR = 5 / 14.173;      // フォントサイズ補正倍率（実測に合わせて調整）
+
+    // ===== 入力パラメータ取得 =====
+    function readInputs() {
+      return {
+        text: document.getElementById('name').value || '',
+        lines: Math.max(1, parseInt(document.getElementById('lines').value || '12', 10)),
+        pitchMm: parseFloat(document.getElementById('pitch').value) || 9,
+        fontPt: parseFloat(document.getElementById('fontpt').value) || 12,
+        corr: parseFloat(document.getElementById('corr').value) || DEFAULT_CORR,
+        weight: document.getElementById('weight').value || '400',
+      };
+    }
+
+    // ===== SVG 生成（テキスト版） =====
+    function buildTextSVGString(params) {
+      const { text, lines, pitchMm, fontPt, corr, weight } = params;
+      const wmm = BOARD_MM, hmm = BOARD_MM;
+      const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const viewBox = `0 0 ${wmm} ${hmm}`; // 単位=mm
+
+      const fontSizePt = fontPt * corr;
+
+      // 行全体の高さと、アートボード中央基準の先頭行Y座標を計算
+      const totalHeight = (lines - 1) * pitchMm;      // 最上段から最下段までの距離
+      const centerY = hmm / 2;                        // アートボード中央
+      const firstY = centerY - (totalHeight / 2);     // 最上段行のY
+
+      const centerX = wmm / 2;                        // 水平方向中央
+
+      let rows = '';
+      for (let i = 0; i < lines; i++) {
+        const y = (firstY + i * pitchMm).toFixed(3);
+        rows += `<text x="${centerX}" y="${y}" font-size="${fontSizePt}pt" font-weight="${weight}" font-family="Rounded Mplus 1c" text-anchor="middle" dominant-baseline="text-before-edge" xml:space="preserve">${esc(text)}</text>`;
+      }
+
+      const svg = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${wmm}mm" height="${hmm}mm" viewBox="${viewBox}">\n` +
+        `  <style>text{font-family:'Rounded Mplus 1c';text-anchor:middle;}</style>\n` +
+        `  <g>\n${rows}\n  </g>\n` +
+        `</svg>`;
+      return svg;
+    }
+
+    // ===== プレビュー更新 =====
+    function updatePreview() {
+      const params = readInputs();
+      const svg = buildTextSVGString(params);
+      document.getElementById('preview').innerHTML = svg;
+    }
+
+    // ===== ダウンロード =====
+    function downloadSVG(svg, filename) {
+      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // ===== テスト =====
+    function runTests() {
+      const out = [];
+
+      // 既存テスト: 12行, 9mm, 12pt
+      const p1 = { text: 'X', lines: 12, pitchMm: 9, fontPt: 12, corr: DEFAULT_CORR, weight: '400' };
+      const svg1 = buildTextSVGString(p1);
+      const textCount1 = (svg1.match(/<text /g) || []).length;
+      out.push(`TC1 text count = ${textCount1} (expect 12)`);
+      out.push(svg1.includes('width="110mm"') && svg1.includes('height="110mm"')
+        ? 'TC1 size ok' : 'TC1 size NG');
+
+      // 既存テスト: 3行, 5mm, 10pt, corr=1
+      const p2 = { text: 'A', lines: 3, pitchMm: 5, fontPt: 10, corr: 1, weight: '400' };
+      const svg2 = buildTextSVGString(p2);
+      const textCount2 = (svg2.match(/<text /g) || []).length;
+      out.push(`TC2 text count = ${textCount2} (expect 3)`);
+      out.push(svg2.includes('font-size="10pt"') ? 'TC2 font-size ok' : 'TC2 font-size NG');
+
+      // 更新テスト: 行群の中心がアートボード中央付近(55mm)になるか
+      const yMatches = svg1.match(/ y="([0-9.]+)" /g) || [];
+      if (yMatches.length >= 2) {
+        const firstY = parseFloat(yMatches[0].replace(/[^0-9.]/g, ''));
+        const lastY = parseFloat(yMatches[yMatches.length - 1].replace(/[^0-9.]/g, ''));
+        const mid = (firstY + lastY) / 2;
+        out.push(Math.abs(mid - 55) < 0.1 ? `TC3 vertical center ok (mid≈${mid.toFixed(2)})` : `TC3 vertical center NG (mid=${mid.toFixed(2)})`);
+      } else {
+        out.push('TC3 vertical center NG (no y matches)');
+      }
+
+      // 追加テスト: ウエイト指定が反映されているか（700はテスト専用値）
+      const p3 = { text: 'W', lines: 1, pitchMm: 9, fontPt: 12, corr: 1, weight: '700' };
+      const svg3 = buildTextSVGString(p3);
+      out.push(svg3.includes('font-weight="700"') ? 'TC4 weight 700 ok' : 'TC4 weight 700 NG');
+
+      // 追加テスト: font-family が Rounded Mplus 1c になっているか
+      out.push(svg1.includes('font-family="Rounded Mplus 1c"') ? 'TC5 family name ok' : 'TC5 family name NG');
+
+      document.getElementById('tests').textContent = out.join('\n');
+    }
+
+    // ===== イベントバインド =====
+    document.getElementById('btnPreview').addEventListener('click', updatePreview);
+
+    document.getElementById('btnDownloadText').addEventListener('click', () => {
+      const params = readInputs();
+      const svg = buildTextSVGString(params);
+      downloadSVG(svg, 'labels_RoundedMplus1c.svg');
+    });
+
+    document.querySelectorAll('#f input, #f select').forEach(el => {
+      el.addEventListener('input', updatePreview);
+      el.addEventListener('change', updatePreview);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updatePreview();
+      runTests();
+    });
+  </script>
+</body>
+</html>
