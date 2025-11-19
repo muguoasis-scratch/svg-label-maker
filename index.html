@@ -247,20 +247,50 @@
 
       let paths = '';
 
+       // ===== SVG 生成（アウトライン版：<path>） =====
+    async function buildOutlinedSVGString(params) {
+      const { text, lines, pitchMm, fontPt, corr } = params;
+      const wmm = BOARD_MM, hmm = BOARD_MM;
+      const viewBox = `0 0 ${wmm} ${hmm}`;
+      const fontSizePt = fontPt * corr;
+
+      const font = await loadRegularFont();
+
+      // 座標計算（テキスト版と同じロジックで中央配置）
+      const totalHeight = (lines - 1) * pitchMm;
+      const centerY = hmm / 2;
+      const firstY = centerY - (totalHeight / 2);
+      const centerX = wmm / 2;
+
+      const upm = font.unitsPerEm;
+      const ascent = font.ascender / upm * fontSizePt;   // 上方向の高さ
+
+      let paths = '';
+
       for (let i = 0; i < lines; i++) {
-        const topY = firstY + i * pitchMm;  // 行の「上端」を想定
-        const baselineY = topY + ascent;    // ベースライン位置
+        const topY = firstY + i * pitchMm;   // 行の「上端」を想定
+        const baselineY = topY + ascent;     // ベースライン位置
 
-        // 一旦 x=0 で生成し、後で中央に平行移動する
-        let path = font.getPath(text, 0, baselineY, fontSizePt);
-        const box = path.getBoundingBox();
-        const textCenterX = (box.x1 + box.x2) / 2;
-        const dx = centerX - textCenterX;
-        path.translate(dx, 0);
+        // テキスト幅を取得して、中央に来るよう x を計算
+        const advance = font.getAdvanceWidth(text, fontSizePt); // スケーリング済み幅
+        const startX = centerX - advance / 2;
 
-        const d = path.toPathData(3);   // 小数3桁
+        // すでに中央寄せされた x でパス生成（translate は使わない）
+        const path = font.getPath(text, startX, baselineY, fontSizePt);
+        const d = path.toPathData(3);        // 小数3桁
+
         paths += `<path d="${d}"/>`;
       }
+
+      const svg =
+        `<?xml version="1.0" encoding="UTF-8"?>\n` +
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${wmm}mm" height="${hmm}mm" viewBox="${viewBox}">\n` +
+        `  <g fill="black">\n${paths}\n  </g>\n` +
+        `</svg>`;
+
+      return svg;
+    }
+
 
       const svg =
         `<?xml version="1.0" encoding="UTF-8"?>\n` +
