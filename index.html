@@ -9,9 +9,8 @@
        ※ SVG 出力は Illustrator 側認識名「Rounded Mplus 1c」で記述 -->
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
 
-  <!-- アウトライン化用ライブラリ：opentype.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
-
+  <!-- アウトライン化用ライブラリ：opentype.js（integrity等は付けない） -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
 
   <style>
     :root { --gap: 12px; }
@@ -227,8 +226,19 @@
       });
     }
 
+    // ===== opentype.Path を平行移動するユーティリティ =====
+    function translatePath(path, dx, dy) {
+      path.commands.forEach(cmd => {
+        if (cmd.x  != null) cmd.x  += dx;
+        if (cmd.y  != null) cmd.y  += dy;
+        if (cmd.x1 != null) cmd.x1 += dx;
+        if (cmd.y1 != null) cmd.y1 += dy;
+        if (cmd.x2 != null) cmd.x2 += dx;
+        if (cmd.y2 != null) cmd.y2 += dy;
+      });
+    }
+
     // ===== SVG 生成（アウトライン版：<path>） =====
-       // ===== SVG 生成（アウトライン版：<path>） =====
     async function buildOutlinedSVGString(params) {
       const { text, lines, pitchMm, fontPt, corr } = params;
       const wmm = BOARD_MM, hmm = BOARD_MM;
@@ -264,17 +274,6 @@
         const d = path.toPathData(3);   // 小数3桁に丸め
         paths += `<path d="${d}"/>`;
       }
-
-      const svg =
-        `<?xml version="1.0" encoding="UTF-8"?>\n` +
-        `<svg xmlns="http://www.w3.org/2000/svg" width="${wmm}mm" height="${hmm}mm" viewBox="${viewBox}">\n` +
-        `  <g fill="black">\n${paths}\n  </g>\n` +
-        `</svg>`;
-
-      return svg;
-    }
-
-
 
       const svg =
         `<?xml version="1.0" encoding="UTF-8"?>\n` +
@@ -379,19 +378,6 @@
       updatePreview();
       runTests();
     });
-
-    // ===== opentype.Path を平行移動するユーティリティ =====
-    function translatePath(path, dx, dy) {
-      path.commands.forEach(cmd => {
-        if (cmd.x  != null) cmd.x  += dx;
-        if (cmd.y  != null) cmd.y  += dy;
-        if (cmd.x1 != null) cmd.x1 += dx;
-        if (cmd.y1 != null) cmd.y1 += dy;
-        if (cmd.x2 != null) cmd.x2 += dx;
-        if (cmd.y2 != null) cmd.y2 += dy;
-      });
-    }
-
   </script>
 </body>
 </html>
