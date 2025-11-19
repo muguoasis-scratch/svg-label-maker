@@ -228,25 +228,6 @@
     }
 
     // ===== SVG 生成（アウトライン版：<path>） =====
-    async function buildOutlinedSVGString(params) {
-      const { text, lines, pitchMm, fontPt, corr } = params;
-      const wmm = BOARD_MM, hmm = BOARD_MM;
-      const viewBox = `0 0 ${wmm} ${hmm}`;
-      const fontSizePt = fontPt * corr;
-
-      const font = await loadRegularFont();
-
-      // 座標計算（テキスト版と同じロジックで中央配置）
-      const totalHeight = (lines - 1) * pitchMm;
-      const centerY = hmm / 2;
-      const firstY = centerY - (totalHeight / 2);
-      const centerX = wmm / 2;
-
-      const upm = font.unitsPerEm;
-      const ascent = font.ascender / upm * fontSizePt;   // 上方向の高さ
-
-      let paths = '';
-
        // ===== SVG 生成（アウトライン版：<path>） =====
     async function buildOutlinedSVGString(params) {
       const { text, lines, pitchMm, fontPt, corr } = params;
@@ -271,14 +252,16 @@
         const topY = firstY + i * pitchMm;   // 行の「上端」を想定
         const baselineY = topY + ascent;     // ベースライン位置
 
-        // テキスト幅を取得して、中央に来るよう x を計算
-        const advance = font.getAdvanceWidth(text, fontSizePt); // スケーリング済み幅
-        const startX = centerX - advance / 2;
+        // まず x=0 でパス生成
+        const path = font.getPath(text, 0, baselineY, fontSizePt);
 
-        // すでに中央寄せされた x でパス生成（translate は使わない）
-        const path = font.getPath(text, startX, baselineY, fontSizePt);
-        const d = path.toPathData(3);        // 小数3桁
+        // バウンディングボックスからテキスト中心を算出し、中央へ平行移動
+        const box = path.getBoundingBox();
+        const textCenterX = (box.x1 + box.x2) / 2;
+        const dx = centerX - textCenterX;
+        translatePath(path, dx, 0);
 
+        const d = path.toPathData(3);   // 小数3桁に丸め
         paths += `<path d="${d}"/>`;
       }
 
@@ -290,6 +273,7 @@
 
       return svg;
     }
+
 
 
       const svg =
@@ -395,6 +379,19 @@
       updatePreview();
       runTests();
     });
+
+    // ===== opentype.Path を平行移動するユーティリティ =====
+    function translatePath(path, dx, dy) {
+      path.commands.forEach(cmd => {
+        if (cmd.x  != null) cmd.x  += dx;
+        if (cmd.y  != null) cmd.y  += dy;
+        if (cmd.x1 != null) cmd.x1 += dx;
+        if (cmd.y1 != null) cmd.y1 += dy;
+        if (cmd.x2 != null) cmd.x2 += dx;
+        if (cmd.y2 != null) cmd.y2 += dy;
+      });
+    }
+
   </script>
 </body>
 </html>
